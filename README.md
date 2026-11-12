@@ -50,7 +50,7 @@ All pages share the sidebar filters: time range (2 weeks to 1 year, charts by da
 For the impatient. Each step is explained in detail under [Setup](#setup).
 
 ```bash
-git clone https://github.com/<owner>/snowflake-cowork-agents-monitor.git
+git clone https://github.com/dataregulator3/snowflake-cowork-agents-monitor.git
 cd snowflake-cowork-agents-monitor
 
 # 1. Fill in the placeholders in setup.sql and run it as ACCOUNTADMIN
@@ -79,7 +79,7 @@ No `environment.yml` is needed. That file is only used by the older warehouse ru
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/<owner>/snowflake-cowork-agents-monitor.git
+git clone https://github.com/dataregulator3/snowflake-cowork-agents-monitor.git
 cd snowflake-cowork-agents-monitor
 ```
 
