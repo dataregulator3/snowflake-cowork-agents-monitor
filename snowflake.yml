@@ -1,0 +1,23 @@
+definition_version: 2
+entities:
+  cowork_agents_monitor:
+    type: streamlit
+    identifier:
+      name: COWORK_AGENTS_MONITOR
+    title: CoWork Agents Monitor
+    query_warehouse: <APP_WAREHOUSE>
+    runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
+    compute_pool: SYSTEM_COMPUTE_POOL_CPU
+    external_access_integrations:
+      - PYPI_ACCESS_INTEGRATION
+    main_file: streamlit_app.py
+    artifacts:
+      - streamlit_app.py
+      - config.py
+      - data.py
+      - charts.py
+      - app_pages/overview.py
+      - app_pages/cost.py
+      - app_pages/performance.py
+      - app_pages/adoption.py
+      - pyproject.toml
