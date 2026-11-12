@@ -24,6 +24,8 @@ It covers both ways agents are used:
 
 All pages share the sidebar filters: time range (2 weeks to 1 year, charts by day, week or month), agent, and a "Show costs" toggle for a management view without cost figures.
 
+Optionally, a scheduled task emails a usage report (see [Email report](#6-optional-email-report)).
+
 <details>
 <summary>Screenshots of all pages</summary>
 
@@ -140,7 +142,7 @@ Example for an account that keeps its agents in `AI.AGENTS` and runs them on `AG
 ```python
 AGENT_LOCATIONS = [("AI", "AGENTS", None)]
 AGENT_WAREHOUSES = ["AGENT_WH"]
-FALLBACK_AI_CREDIT_PRICE = 2.20
+FALLBACK_AI_CREDIT_PRICE = 2.50
 FALLBACK_COMPUTE_CREDIT_PRICE = 3.00
 SECONDARY_CURRENCY = ("EUR", 0.92)
 AGENT_DISPLAY_NAMES = {"SALES_AGENT": "Sales Assistant"}
@@ -174,6 +176,32 @@ GRANT USAGE ON STREAMLIT <APP_DATABASE>.<APP_SCHEMA>.COWORK_AGENTS_MONITOR TO RO
 
 The app's queries run with the owner role `AGENTS_MONITOR_ROLE`, so viewers do not need access to `ACCOUNT_USAGE` themselves. Keep in mind that every viewer then sees usage and user names of all agents in scope.
 
+### 6. Optional: email report
+
+`notification/agent_usage_report.sql` creates a task that sends an HTML email on weekdays at 12:00 and 18:00 (UTC by default) with:
+
+- AI credits, estimated cost, requests and users across all agents
+- usage per agent since the first request
+- today's usage per agent and user
+- usage per agent and user since the first request
+- a link to the app
+
+It reads the same views as the app (CoWork and API) and the price from the rate sheet, with a fallback price in the script.
+
+1. Replace the placeholders at the top of the script: `<APP_DATABASE>`, `<APP_SCHEMA>`, `<APP_WAREHOUSE>`, `<RECIPIENT_EMAIL>` and `<APP_URL>` (the URL printed by `snow streamlit deploy`).
+2. Optionally adjust the schedule, `fallback_rate`, `currency` and the second currency (`fx_symbol`, `fx_rate`) in the script.
+3. Run the script in a Snowsight worksheet as `ACCOUNTADMIN`.
+
+The script creates the email notification integration `AGENTS_MONITOR_EMAIL`, grants the task privileges to `AGENTS_MONITOR_ROLE`, sends one report right away and starts the schedule.
+
+The recipient must be a user in your account with a **verified email address** (Snowsight > your profile). Otherwise `SYSTEM$SEND_EMAIL` fails.
+
+Run it in a worksheet, not with `snow sql -f`: the CLI splits scripts at every semicolon, including those inside the task body.
+
+To stop the report: `ALTER TASK <APP_DATABASE>.<APP_SCHEMA>.T_AGENT_USAGE_REPORT SUSPEND;`
+
+Rerunning the script doesn't change an existing task (`CREATE TASK IF NOT EXISTS`), so the run history is kept. To change the schedule or the report later, suspend the task and use `ALTER TASK ... SET SCHEDULE` or `ALTER TASK ... MODIFY AS`, then resume it. The header of the script shows the commands. Avoid `CREATE OR REPLACE TASK`: it creates a new task object, and Snowsight shows the run history from zero.
+
 ### Updating
 
 After changing `config.py` or pulling a new version, run the deploy command from step 4 again. Use **Refresh data** in the sidebar to reload data without redeploying; otherwise data is cached for 5 minutes.
@@ -189,6 +217,7 @@ After changing `config.py` or pulling a new version, run the deploy command from
 | Auto-suspend shows "n/a" | Missing `MONITOR` on the warehouse, see the optional grants in step 2. |
 | Changes in `config.py` don't show up | The app runs the deployed copy. Deploy again. |
 | `ModuleNotFoundError` for `data`, `charts` or `config` | A file is missing from `artifacts` in `snowflake.yml`. |
+| No report email arrives | Check `SELECT * FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY()) WHERE NAME = 'T_AGENT_USAGE_REPORT'` for errors. Most common: the recipient's email address is not verified, or it is not listed in `ALLOWED_RECIPIENTS` of the integration. |
 
 ## Local development
 
@@ -218,6 +247,7 @@ Locally the queries run with the role of your connection, which needs the same g
 | `pyproject.toml` | Python dependencies, installed from PyPI by the container runtime |
 | `snowflake.yml` | Snowflake CLI project definition for `snow streamlit deploy` |
 | `setup.sql` | Role, grants, compute pool access and PyPI integration |
+| `notification/agent_usage_report.sql` | Optional scheduled email report (task and email integration) |
 | `docs/` | Screenshots for this README (not deployed) |
 
 ## How the numbers are calculated
